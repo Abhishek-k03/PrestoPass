@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ticket_py_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ticket
+      POSTGRES_PASSWORD: ticket
+      POSTGRES_DB: ticket_booking_platform
+    # 5432 on this host is owned by a native PostgreSQL 18 install.
+    ports:
+      - "5433:5432"
+    volumes:
+      - ticket_py_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket -d ticket_booking_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ticket_py_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ticket_py_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ticket_py_pgdata:
+  ticket_py_redisdata:
