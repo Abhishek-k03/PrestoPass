@@ -1,0 +1,284 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@config "../../tailwind.config.ts";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* ── Typography ─────────────────────────────────────────────
+     Instrument Serif for display, Geist for UI, Geist Mono for data.
+     All three are wired in app/layout.tsx via next/font/google.       */
+  --font-sans: var(--font-geist-sans);
+  --font-heading: var(--font-instrument-serif);
+  --font-display: var(--font-instrument-serif);
+  --font-mono: var(--font-geist-mono);
+
+  --text-hero: 3.5rem;
+  --text-hero--line-height: 1.02;
+  --text-hero--font-weight: 400;
+  --text-hero--letter-spacing: -0.02em;
+
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.05;
+  --text-display--font-weight: 400;
+  --text-display--letter-spacing: -0.015em;
+
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.15;
+  --text-title--font-weight: 400;
+  --text-title--letter-spacing: -0.01em;
+
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.3;
+  --text-heading--font-weight: 600;
+  --text-heading--letter-spacing: -0.01em;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.55;
+  --text-body--font-weight: 400;
+
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.4;
+  --text-label--font-weight: 500;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.35;
+  --text-caption--font-weight: 500;
+
+  /* Kicker replaces the old --text-section: wider tracking, lighter
+     weight, because dark grounds need less weight to read.          */
+  --text-kicker: 0.6875rem;
+  --text-kicker--line-height: 1;
+  --text-kicker--font-weight: 600;
+  --text-kicker--letter-spacing: 0.14em;
+
+  --text-section: 0.6875rem;
+  --text-section--line-height: 1;
+  --text-section--font-weight: 600;
+  --text-section--letter-spacing: 0.14em;
+
+  /* Renamed from --text-price. The token reserved for money now carries
+     the numbers this product actually has: counts, timers, seat ids.   */
+  --text-metric: 2rem;
+  --text-metric--line-height: 1;
+  --text-metric--font-weight: 500;
+  --text-metric--letter-spacing: -0.01em;
+
+  --text-metric-sm: 1rem;
+  --text-metric-sm--line-height: 1;
+  --text-metric-sm--font-weight: 500;
+
+  /* ── Shadows ───────────────────────────────────────────────
+     Depth on near-black comes from the surface ladder plus a hairline.
+     These deep alphas are for genuinely floating layers only.        */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 16px 40px -12px rgb(0 0 0 / 0.7);
+  --shadow-tooltip: 0 8px 24px 0 rgb(0 0 0 / 0.6);
+
+  /* The marquee bulb. Exactly two elements in the whole product carry
+     it: the primary CTA and the selected seat. Scarce by rule.       */
+  --shadow-glow:
+    0 0 0 1px oklch(0.8 0.165 72 / 0.25), 0 8px 24px -8px oklch(0.8 0.165 72 / 0.35);
+
+  /* ── Ink ramp ──────────────────────────────────────────────
+     Warm neutral, hue 70-85, chroma <= 0.010 so it never drifts
+     toward a blue-black corporate grey.                        */
+  --color-ink-1000: var(--ink-1000);
+  --color-ink-950: var(--ink-950);
+  --color-ink-900: var(--ink-900);
+  --color-ink-850: var(--ink-850);
+  --color-ink-800: var(--ink-800);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-ink-300: var(--ink-300);
+  --color-ink-100: var(--ink-100);
+  --color-ivory: var(--ivory);
+
+  /* ── Shadcn semantic colors ───────────────────────────────── */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* ── Extended palette ─────────────────────────────────────── */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-surface: var(--surface);
+  --color-field: var(--field);
+
+  /* ── Charts ───────────────────────────────────────────────── */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* ── Sidebar ──────────────────────────────────────────────── */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ── Border radii ─────────────────────────────────────────── */
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-3xl: calc(var(--radius) + 14px);
+  --radius-4xl: calc(var(--radius) + 18px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MIDNIGHT MARQUEE - the house goes dark so the stage is lit.
+   Dark-first: this IS the theme, not an alternate one, which is why
+   the palette lives in :root and the old .dark block is gone.
+   Amber is the clock. Green is the receipt. Red is the loss.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  /* Ink ramp */
+  --ink-1000: oklch(0.145 0.004 70); /* #0B0A08 page ground, nav, footer */
+  --ink-950: oklch(0.185 0.005 70); /* #141210 card / panel surface     */
+  --ink-900: oklch(0.225 0.006 70); /* #1E1B19 seat-map ground, inset   */
+  --ink-850: oklch(0.255 0.006 70); /* #252220 input fill               */
+  --ink-800: oklch(0.3 0.006 70); /*   #302D2B border / hairline       */
+  --ink-700: oklch(0.38 0.006 70); /*  #44423F border-hover, seat fill  */
+  --ink-500: oklch(0.62 0.01 70); /*   #8A8580 muted foreground 5.42:1  */
+  --ink-300: oklch(0.78 0.01 75); /*   #BBB7B0 secondary fg    9.91:1   */
+  --ink-100: oklch(0.94 0.006 80); /*  #EDEBE7 foreground      16.62:1  */
+  --ivory: oklch(0.975 0.006 85); /*    #F9F6F2 high emphasis  18.37:1  */
+
+  /* Surfaces */
+  --background: var(--ink-1000);
+  --foreground: var(--ink-100);
+  --surface: var(--ink-900);
+  --card: var(--ink-950);
+  --card-foreground: var(--ink-100);
+  --popover: var(--ink-900);
+  --popover-foreground: var(--ink-100);
+  --field: var(--ink-850);
+
+  /* Primary - amber, the clock: CTA, lock, countdown, low stock,
+     selected seat. 10.28:1 on the ground, carrying ink text not white. */
+  --primary: oklch(0.8 0.165 72); /* #FEA91E */
+  --primary-foreground: var(--ink-1000);
+
+  /* Secondary / muted - quiet ink surfaces */
+  --secondary: var(--ink-900);
+  --secondary-foreground: var(--ink-100);
+  --muted: var(--ink-900);
+  --muted-foreground: var(--ink-500);
+
+  /* Accent - blue, in-flight: processing, polling, queue radar. 8.15:1 */
+  --accent: oklch(0.72 0.14 235); /* #2EB1EF */
+  --accent-foreground: var(--ink-1000);
+
+  /* Destructive - red, the loss. The previous oklch(0.42 0.195 25) was
+     OUT OF sRGB GAMUT and clipped; this one is in gamut at 5.31:1.    */
+  --destructive: oklch(0.64 0.22 27); /* #F53E39 */
+  --destructive-foreground: var(--ink-1000);
+
+  /* Success - green, the receipt. 10.54:1 */
+  --success: oklch(0.78 0.185 148); /* #50D66F */
+  --success-foreground: var(--ink-1000);
+
+  /* Warning - referenced by PaymentQueuePanel since forever, defined here
+     for the first time, so bg-warning/15 text-warning finally resolves. */
+  --warning: oklch(0.8 0.165 72);
+  --warning-foreground: var(--ink-1000);
+
+  /* Header / nav */
+  --header: var(--ink-1000);
+  --header-foreground: var(--ivory);
+
+  /* Borders & inputs */
+  --border: var(--ink-800);
+  --input: var(--ink-800);
+  --ring: oklch(0.8 0.165 72);
+
+  /* Charts */
+  --chart-1: oklch(0.8 0.165 72);
+  --chart-2: oklch(0.78 0.185 148);
+  --chart-3: oklch(0.64 0.22 27);
+  --chart-4: oklch(0.72 0.14 235);
+  --chart-5: var(--ink-500);
+
+  /* Radius - 8px base. The ladder above yields sm 6 / md 8 / lg 10 /
+     xl 14 / 2xl 18 / 3xl 22 / 4xl 26. Four are used across UI surfaces:
+     sm on seat tiles, md on controls, xl on cards, 3xl on page headers. */
+  --radius: 0.5rem;
+
+  /* Sidebar */
+  --sidebar: var(--ink-1000);
+  --sidebar-foreground: var(--ink-100);
+  --sidebar-primary: oklch(0.8 0.165 72);
+  --sidebar-primary-foreground: var(--ink-1000);
+  --sidebar-accent: var(--ink-900);
+  --sidebar-accent-foreground: var(--ivory);
+  --sidebar-border: var(--ink-800);
+  --sidebar-ring: oklch(0.8 0.165 72);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground text-body antialiased;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  h1 {
+    @apply text-display font-display text-ivory;
+  }
+
+  h2 {
+    @apply text-title font-display text-ivory;
+  }
+
+  h3 {
+    @apply text-heading text-ivory;
+  }
+
+  /* Tabular figures wherever numbers matter, so a running countdown
+     never shifts width between frames. */
+  .font-mono,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-section-label {
+    @apply text-kicker uppercase text-muted-foreground;
+  }
+}
