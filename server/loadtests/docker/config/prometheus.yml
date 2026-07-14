@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Enable the Prometheus remote-write receiver API (Crucial for k6 interaction)
+remote_write:
+  - url: "http://localhost:9090/api/v1/write"
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
