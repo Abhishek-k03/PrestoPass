@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, use, useCallback } from "react";
+import React, { useEffect, useState, use, useCallback, useRef } from "react";
 import Script from "next/script";
 import { motion } from "motion/react";
 import { ArrowRight, CalendarDays, MapPin, TriangleAlert } from "lucide-react";
@@ -41,11 +41,69 @@ const EventDetails = ({ params }: PageProps) => {
   const [reservedSeat, setReservedSeat] = useState<seatType | null>(null);
   const [lockExpiresIn, setLockExpiresIn] = useState<number | null>(null);
   const [showQueue, setShowQueue] = useState(false);
+  type QueueStatus = "idle" | "waiting" | "processing" | "success" | "failed";
   const [queueState, setQueueState] = useState({
-    status: "idle" as "idle" | "waiting" | "processing" | "success" | "failed",
+    status: "idle" as QueueStatus,
     message: "",
   });
   const [isLocking, setIsLocking] = useState(false); // Prevents spamming button clicks
+
+  // The worker settles a payment in a single fast DB update with no network
+  // round trip, so "processing" and "success" can arrive within the same
+  // socket flush -- React never paints "processing" in between and the step
+  // looks skipped. This holds each transient step on screen for a minimum
+  // stretch so the user actually sees it, without slowing anything real down.
+  const MIN_DISPLAY_MS: Partial<Record<QueueStatus, number>> = {
+    waiting: 400,
+    processing: 700,
+  };
+  const queueStatusRef = useRef<QueueStatus>(queueState.status);
+  const queueStateEnteredAtRef = useRef<number>(Date.now());
+  // A FIFO queue rather than a single cancelable timer: "processing" and
+  // "success" can both arrive while "waiting" is still being timed out, and
+  // a naive cancel-and-replace would let "success" clobber the still-pending
+  // "processing" transition, skipping it entirely. Queuing lets each step
+  // get its minimum on-screen time before the next one is even attempted.
+  const queuePendingRef = useRef<{ status: QueueStatus; message: string }[]>([]);
+  const queuePumpTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    queueStatusRef.current = queueState.status;
+  }, [queueState.status]);
+
+  const pumpQueueState = useCallback(() => {
+    if (queuePumpTimeoutRef.current) return; // a transition is already pending
+
+    const next = queuePendingRef.current[0];
+    if (!next) return;
+
+    const current = queueStatusRef.current;
+    const minMs = MIN_DISPLAY_MS[current] ?? 0;
+    const elapsed = Date.now() - queueStateEnteredAtRef.current;
+
+    const run = () => {
+      queuePumpTimeoutRef.current = null;
+      queuePendingRef.current.shift();
+      queueStateEnteredAtRef.current = Date.now();
+      queueStatusRef.current = next.status;
+      setQueueState(next);
+      pumpQueueState();
+    };
+
+    if (current !== next.status && minMs > elapsed) {
+      queuePumpTimeoutRef.current = setTimeout(run, minMs - elapsed);
+    } else {
+      run();
+    }
+  }, []);
+
+  const commitQueueState = useCallback(
+    (next: { status: QueueStatus; message: string }) => {
+      queuePendingRef.current.push(next);
+      pumpQueueState();
+    },
+    [pumpQueueState],
+  );
 
   // --- CHECKOUT STATE ---
   // An open order means a checkout is on screen. Nothing has been charged yet:
@@ -115,14 +173,14 @@ const EventDetails = ({ params }: PageProps) => {
         const booking = res.data?.booking;
         if (booking) {
           if (booking.status === "CONFIRMED" || booking.paymentStatus === "PAID") {
-            setQueueState({
+            commitQueueState({
               status: "success",
               message: "Your payment was processed successfully! Your ticket is confirmed.",
             });
             setActiveBookingId(null);
             fetchSeats();
           } else if (booking.status === "CANCELLED") {
-            setQueueState({
+            commitQueueState({
               status: "failed",
               message: "Payment processing failed. Your seat lock has been released.",
             });
@@ -202,32 +260,29 @@ const EventDetails = ({ params }: PageProps) => {
 
     // Listen for the success shout from paymentWorker.TS
     socket.on("booking_confirmed", (payload: any) => {
-      setQueueState((current) => ({
-        ...current,
+      commitQueueState({
         status: "success",
         message: payload.message || "Booking confirmed.",
-      }));
+      });
     });
 
     // Listen for the event when our worker is processing it at that time
     socket.on("payment_processing", (payload: any) => {
-      setQueueState((current) => ({
-        ...current,
+      commitQueueState({
         status: "processing",
         message: payload.message || "Your payment is being processed...",
-      }));
+      });
     });
 
     //listen for the FAILURE SHOUT
     socket.on("booking_failed", (payload: any) => {
       console.error("WebSocket Failure Receive :", payload);
-      setQueueState((current) => ({
-        ...current,
+      commitQueueState({
         status: "failed",
         message:
           payload.message ||
           "Booking failed. Your seat lock may have been released.",
-      }));
+      });
     });
 
     // Listen for the real time queue updates from queue.service.ts and update our mapQueueState
@@ -266,6 +321,10 @@ const EventDetails = ({ params }: PageProps) => {
       socket.off("payment_processing");
       socket.off("seat_status_changed");
       socket.disconnect();
+      if (queuePumpTimeoutRef.current) {
+        clearTimeout(queuePumpTimeoutRef.current);
+      }
+      queuePendingRef.current = [];
     };
   }, [id, fetchSeats]);
 
@@ -383,7 +442,7 @@ const EventDetails = ({ params }: PageProps) => {
 
       setOrder(null);
       setShowQueue(true);
-      setQueueState({
+      commitQueueState({
         status: "waiting",
         message: "Payment received. Confirming your seat...",
       });
@@ -403,7 +462,7 @@ const EventDetails = ({ params }: PageProps) => {
         // From here the existing socket listeners and the polling fallback
         // drive the rail; nothing else to do.
       } catch (err: any) {
-        setQueueState({
+        commitQueueState({
           status: "failed",
           message:
             err.response?.data?.message ||
@@ -413,7 +472,7 @@ const EventDetails = ({ params }: PageProps) => {
         fetchSeats();
       }
     },
-    [order, fetchSeats],
+    [order, fetchSeats, commitQueueState],
   );
 
   // Closing the checkout keeps the hold. The panel behind it promises the seat
