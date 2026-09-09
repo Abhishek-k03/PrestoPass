@@ -20,6 +20,7 @@ A high-concurrency event ticketing system built to handle flash-sale traffic lik
 - [Getting Started](#getting-started)
 - [Frontend Routes](#frontend-routes)
 - [Load Test Overview](#load-testing)
+- [Deployment](#deployment)
 - [License](#license)
 
 - [Getting Started With LoadTests](./server/loadtests/README.md#get-started-with-tests)
@@ -537,6 +538,25 @@ PrestoPass was built on the assumption that seats will be contested with proof �
 ### Read the full Concurrency & Load Test Report [HERE](./server/loadtests/README.md)
 
 The full report includes the detailed test objectives, k6 script logic, raw CLI output, and the complete root-cause investigation for every finding above — including the DB connection pool ceiling and the k6 VU-aliasing artifact.
+
+---
+
+## Deployment
+
+[`render.yaml`](./render.yaml) is a Render Blueprint covering the whole stack —
+Postgres, Key Value (Redis), the API, and the frontend. The API container runs
+the taskiq payment worker alongside uvicorn, supervised so that a dead worker
+takes the container down rather than leaving the payment queue unconsumed.
+
+```powershell
+# Build and run the server image exactly as it is deployed
+cd server
+docker build -t prestopass-server .
+docker run -p 5000:5000 --env-file .env prestopass-server all   # or: api | worker
+```
+
+Step-by-step instructions, the free-plan caveats, and how to split the worker
+onto its own service live in [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ---
 

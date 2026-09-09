@@ -1,0 +1,160 @@
+# PrestoPass on Render -- one Blueprint for the whole stack.
+#
+#   prestopass-db     Postgres      source of truth
+#   prestopass-redis  Key Value     seat locks, waiting queue, socket pub/sub, task queue
+#   prestopass-api    Docker web    FastAPI + Socket.IO + the taskiq payment worker
+#   prestopass-web    Node web      Next.js frontend
+#
+# Every service pins the same region on purpose: Render's private network, which
+# is how the API reaches Postgres and Key Value without going over the internet,
+# only links services in one region. Change the region and you must change all
+# four together.
+#
+# See DEPLOYMENT.md for the one value that is not wired automatically.
+
+databases:
+  - name: prestopass-db
+    databaseName: ticket_booking_platform
+    user: ticket
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
+
+services:
+  # ---------------------------------------------------------------- Key Value
+  # noeviction is not a tuning preference. Seat locks and the waiting queue live
+  # here, and an evicted lock key is a seat that two people both believe they
+  # hold -- the exact failure this project exists to prevent. Better that writes
+  # fail loudly at the memory ceiling than that locks quietly disappear.
+  - type: keyvalue
+    name: prestopass-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: noeviction
+    ipAllowList: [] # private network only -- no public access
+
+  # ---------------------------------------------------------------- API + worker
+  - type: web
+    name: prestopass-api
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: server
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    # Don't rebuild the API when only frontend files changed.
+    buildFilter:
+      paths:
+        - server/**
+        - render.yaml
+    envVars:
+      # PORT is injected by Render; run.py reads it through Settings.PORT.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: prestopass-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: prestopass-redis
+          property: connectionString
+
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_DAYS
+        value: "7"
+
+      # Turns on https-only session cookies and drops localhost from the CORS
+      # allow-list. See Settings.is_production.
+      - key: NODE_ENV
+        value: production
+      # Render terminates TLS at its proxy, so uvicorn must trust the forwarded
+      # headers or every request looks like plain http to the app.
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"
+
+      # The frontend's origin, for CORS and Socket.IO. This cannot use
+      # `fromService` pointing at prestopass-web: that service already points
+      # back here for its API URL, and Render rejects circular references.
+      # This literal is correct as long as the web service kept its name --
+      # Render appends a suffix if "prestopass-web" was already taken globally.
+      # DEPLOYMENT.md step 4 has the 30-second check.
+      - key: FRONTEND_URL
+        value: https://prestopass-web.onrender.com
+      # Spare slot for a custom domain later; harmless while blank.
+      - key: FRONTEND_URL_ALT
+        sync: false
+
+      # Free Postgres caps total connections around 97, and this container opens
+      # two pools (API and worker). The local defaults of 20+20 and 10+10 would
+      # exhaust it with a single extra instance.
+      - key: DB_POOL_SIZE
+        value: "5"
+      - key: DB_MAX_OVERFLOW
+        value: "5"
+      - key: WORKER_DB_POOL_SIZE
+        value: "5"
+      - key: WORKER_DB_MAX_OVERFLOW
+        value: "5"
+      # 0.1 CPU on the free plan; 100 in-flight payment tasks would only thrash.
+      - key: WORKER_MAX_ASYNC_TASKS
+        value: "50"
+
+      # "mock" needs no keys and no network. Switch to "razorpay" and fill the
+      # three values below to use real test-mode checkout.
+      - key: PAYMENT_PROVIDER
+        value: mock
+      - key: PAYMENT_CURRENCY
+        value: INR
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+      # Google OAuth stays off unless both are set (Settings.google_enabled).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+
+      # Flip to "1" for one deploy to load the sample events, then back to "0".
+      # Migrations run on every boot regardless; seeding is opt-in and idempotent.
+      - key: SEED_ON_START
+        value: "0"
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+
+  # ---------------------------------------------------------------- Frontend
+  - type: web
+    name: prestopass-web
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    # package.json's "start" pins port 4000; Render assigns the port instead.
+    startCommand: npx next start -H 0.0.0.0 -p $PORT
+    buildFilter:
+      paths:
+        - frontend/**
+        - render.yaml
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Baked into the client bundle at build time, so a change here needs a
+      # rebuild, not just a restart. `property: host` yields a bare hostname;
+      # src/lib/apiUrl.ts adds the https:// scheme.
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: prestopass-api
+          property: host

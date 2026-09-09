@@ -58,7 +58,15 @@ def main() -> int:
     args = parser.parse_args()
 
     sock = make_dual_stack_socket(args.host, args.port)
-    config = uvicorn.Config(APP_PATH, log_level="info", reload=args.reload)
+    config = uvicorn.Config(
+        APP_PATH,
+        log_level="info",
+        reload=args.reload,
+        # Behind a PaaS/reverse proxy this must name the proxy (or "*"), or the
+        # X-Forwarded-Proto header is ignored and every URL the app builds is http.
+        proxy_headers=True,
+        forwarded_allow_ips=settings.FORWARDED_ALLOW_IPS,
+    )
     server = uvicorn.Server(config)
 
     print(f"Listening on http://localhost:{args.port} (IPv4 + IPv6)")

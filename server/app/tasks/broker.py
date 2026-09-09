@@ -39,7 +39,10 @@ broker = ListQueueBroker(
 @broker.on_event(TaskiqEvents.WORKER_STARTUP)
 async def worker_startup(state: TaskiqState) -> None:
     state.engine = create_async_engine(
-        settings.DATABASE_URL, pool_size=10, max_overflow=10, pool_pre_ping=True
+        settings.DATABASE_URL,
+        pool_size=settings.WORKER_DB_POOL_SIZE,
+        max_overflow=settings.WORKER_DB_MAX_OVERFLOW,
+        pool_pre_ping=True,
     )
     state.sessionmaker = async_sessionmaker(state.engine, expire_on_commit=False, autoflush=False)
     state.redis = redis_from_url(settings.REDIS_URL, decode_responses=True)

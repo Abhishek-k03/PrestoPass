@@ -4,8 +4,10 @@
 
 import {io} from "socket.io-client";
 
+import { API_BASE_URL } from "./apiUrl";
+
 //get backend url
-const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
+const SOCKET_URL = API_BASE_URL;
 
 //Connect to web socket server 
 //autoConnect :false means we turn it on manually only when a user logs in!

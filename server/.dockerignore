@@ -1,0 +1,18 @@
+# The local virtualenv would shadow the image's own /opt/venv and is Windows-built.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Secrets never belong in an image layer -- they arrive as runtime env vars.
+.env
+
+# Dev-only tooling: k6 scripts, Grafana/Prometheus configs, generated JWTs.
+loadtests/
+
+docker-compose.yml
+README.md
