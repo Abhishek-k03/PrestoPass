@@ -4,9 +4,10 @@
 // NEXT_PUBLIC_* values are inlined at build time, so this must stay a static
 // reference to process.env.NEXT_PUBLIC_API_URL -- not a dynamic lookup.
 //
-// The value can arrive without a scheme: Render's `fromService: property: host`
-// yields a bare hostname like "prestopass-api.onrender.com", and both axios and
-// socket.io need a full origin.
+// This runs in the visitor's browser, so the value must be a public origin. Do
+// not wire it to Render's `fromService: property: host`, which resolves to the
+// private-network hostname; the scheme fallback below would turn that into a
+// plausible-looking https:// URL that no browser can resolve.
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 

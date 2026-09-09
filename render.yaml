@@ -151,10 +151,12 @@ services:
       - key: NODE_VERSION
         value: "22"
       # Baked into the client bundle at build time, so a change here needs a
-      # rebuild, not just a restart. `property: host` yields a bare hostname;
-      # src/lib/apiUrl.ts adds the https:// scheme.
+      # rebuild, not just a restart.
+      #
+      # Deliberately a literal and NOT `fromService: property: host`: that
+      # resolves to Render's *internal* hostname ("prestopass-api"), which is
+      # reachable only from inside the private network. This value is compiled
+      # into JavaScript that runs in the visitor's browser, so it has to be the
+      # public URL. Keep it in step with the API service's own address.
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: prestopass-api
-          property: host
+        value: https://prestopass-api.onrender.com

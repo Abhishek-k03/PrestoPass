@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Ticket } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/lib/apiUrl";
 
 const FIELD =
   "h-10 w-full rounded-md border border-border bg-field px-3 text-label text-ink-100 placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/15";
@@ -97,7 +98,7 @@ const Login = () => {
         <button
           type="button"
           onClick={() => {
-            window.location.href = "http://localhost:5000/api/auth/google";
+            window.location.href = `${API_BASE_URL}/api/auth/google`;
           }}
           className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-md border border-border text-label text-ink-100 transition hover:border-ink-700 hover:text-ivory"
         >
