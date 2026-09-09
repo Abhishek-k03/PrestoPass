@@ -62,13 +62,20 @@ dead worker restarts instead of silently swallowing the payment queue.
    CORS errors if `FRONTEND_URL` is wrong, `ERR_NAME_NOT_RESOLVED` or calls to
    `localhost:5000` if `NEXT_PUBLIC_API_URL` is.
 
-5. **Seed sample events** (optional, once). On `prestopass-api ▸ Environment` set
-   `SEED_ON_START=1`, and — if you want an admin account — `SEED_ADMIN_EMAIL` and
-   `SEED_ADMIN_PASSWORD`. Save, let it redeploy, then set `SEED_ON_START` back to
-   `0`. The seed script is idempotent, so a stray extra run is harmless.
+5. **Sample events seed themselves.** `SEED_ON_START` is `1` in the Blueprint, so
+   the first boot creates three sample events (601 seats total). This is safe to
+   leave on — `seed_events()` returns early once those events exist, so later
+   boots cost one `COUNT` query — and it means the demo re-seeds itself if the
+   database is ever recreated, which free Postgres forces after 30 days.
 
-   To promote an account you registered through the UI instead, use
-   **`prestopass-db` ▸ Connect ▸ PSQL command**:
+   Set it to `0` if this deployment ever holds real data. It would not duplicate
+   anything, but it would insert sample events into a live database.
+
+6. **Admin account** (optional). No admin exists by default, because the register
+   endpoint hardcodes the `CUSTOMER` role. Either set `SEED_ADMIN_EMAIL` and
+   `SEED_ADMIN_PASSWORD` on `prestopass-api ▸ Environment` — deliberately not in
+   `render.yaml`, since that would commit a password to git — or register through
+   the UI and promote yourself via **`prestopass-db` ▸ Connect ▸ PSQL command**:
 
    ```sql
    UPDATE "User" SET role = 'ADMIN' WHERE email = 'your@email.com';

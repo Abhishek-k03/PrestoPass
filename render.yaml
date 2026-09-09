@@ -124,10 +124,16 @@ services:
       - key: GOOGLE_CALLBACK_URL
         sync: false
 
-      # Flip to "1" for one deploy to load the sample events, then back to "0".
-      # Migrations run on every boot regardless; seeding is opt-in and idempotent.
+      # On for a demo deployment, and safe to leave on: seed_events() returns
+      # early when the sample events already exist, so a boot costs one COUNT
+      # query. Being armed means the demo re-seeds itself if the database is
+      # ever recreated -- which free Postgres forces after 30 days -- instead of
+      # silently serving an empty event list from a link on a resume.
+      #
+      # Set this to "0" if this deployment ever holds real data. It would not
+      # duplicate anything, but it would insert sample events into a live DB.
       - key: SEED_ON_START
-        value: "0"
+        value: "1"
       - key: SEED_ADMIN_EMAIL
         sync: false
       - key: SEED_ADMIN_PASSWORD
